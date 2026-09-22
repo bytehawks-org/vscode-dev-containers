@@ -73,3 +73,5 @@ RUN node -v && npm -v && \. "$NVM_DIR/nvm.sh" && nvm --version
 # behavior) and any image built FROM this one are free to replace it without touching ENTRYPOINT.
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["sleep", "infinity"]
+
+
