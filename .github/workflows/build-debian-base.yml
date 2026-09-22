@@ -1,0 +1,114 @@
+name: Build Debian base image
+
+on:
+  push:
+    paths:
+      - 'base/Debian/Dockerfile'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'base/Debian/Dockerfile'
+
+env:
+  IMAGE_NAME: debian-base
+
+jobs:
+  build:
+    # Runs on every push (any branch) and on PRs targeting main: validates the
+    # Dockerfile builds for both architectures without publishing anything.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build multi-arch (validation only, no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: base/Debian
+          platforms: linux/amd64,linux/arm64
+          push: false
+
+      - name: Build amd64 image for smoke test
+        uses: docker/build-push-action@v6
+        with:
+          context: base/Debian
+          platforms: linux/amd64
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:ci
+
+      - name: Smoke test image
+        run: |
+          docker run --rm ${{ env.IMAGE_NAME }}:ci node -v
+          docker run --rm ${{ env.IMAGE_NAME }}:ci npm -v
+          docker run --rm ${{ env.IMAGE_NAME }}:ci bash -lc 'nvm --version'
+
+  publish:
+    # Only publishes when the Dockerfile change lands on main (post-merge),
+    # so 'latest'/'trixie'/'13' always point at a build that passed the checks above.
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Compute lowercase image owner
+        id: owner
+        run: echo "name=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Docker Hub push: disabled until the following repository secrets are configured:
+      #   DOCKERHUB_USERNAME - Docker Hub username or org
+      #   DOCKERHUB_TOKEN     - Docker Hub access token (Account Settings > Security)
+      # Once set, uncomment this step and the dockerhub tags/output block below.
+      # - name: Log in to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push multi-arch image to GHCR
+        uses: docker/build-push-action@v6
+        with:
+          context: base/Debian
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ steps.owner.outputs.name }}/${{ env.IMAGE_NAME }}:latest
+            ghcr.io/${{ steps.owner.outputs.name }}/${{ env.IMAGE_NAME }}:trixie
+            ghcr.io/${{ steps.owner.outputs.name }}/${{ env.IMAGE_NAME }}:13
+
+      # Same build, pushed to Docker Hub too. Disabled until DOCKERHUB_USERNAME and
+      # DOCKERHUB_TOKEN repository secrets are configured (see the login step above).
+      # - name: Build and push multi-arch image to Docker Hub
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     context: base/Debian
+      #     platforms: linux/amd64,linux/arm64
+      #     push: true
+      #     tags: |
+      #       docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+      #       docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:trixie
+      #       docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:13
