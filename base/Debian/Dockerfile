@@ -37,6 +37,15 @@ LABEL org.opencontainers.image.title="Debian Base" \
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+RUN tee /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/debian
+Suites: $(. /etc/os-release && echo "$VERSION_CODENAME")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
 # Replace /bin/sh with /bin/bash, install common base utilities, and clean up apt caches.
 # - procps: gives VS Code Server (and extensions) `ps`, required for it to detect/manage its own processes
 # - locales: avoids Perl/locale warnings that otherwise surface in every shell/tool downstream
@@ -44,10 +53,18 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN rm /bin/sh \
     && ln -s /bin/bash /bin/sh \
     && apt-get update \
-    && apt-get install -y --no-install-recommends curl wget git sudo ca-certificates procps locales tini podman podman-compose podman-docker \
+    && apt-get install -y --no-install-recommends curl wget git sudo \
+       ca-certificates procps locales tini \
     && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
-    && locale-gen \
-    && apt-get autoclean \
+    && locale-gen
+
+RUN mkdir -p /etc/apt/keyrings \
+    && chmod 0755 /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
+    && chmod a+r /etc/apt/keyrings/docker.asc \
+    && sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+RUN apt-get autoclean \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
