@@ -44,7 +44,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN rm /bin/sh \
     && ln -s /bin/bash /bin/sh \
     && apt-get update \
-    && apt-get install -y --no-install-recommends curl wget git sudo ca-certificates procps locales tini \
+    && apt-get install -y --no-install-recommends curl wget git sudo ca-certificates procps locales tini podman podman-compose podman-docker \
     && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
     && locale-gen \
     && apt-get autoclean \
