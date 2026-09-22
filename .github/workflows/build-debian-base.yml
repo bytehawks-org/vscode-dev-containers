@@ -11,6 +11,7 @@ on:
       - 'base/Debian/Dockerfile'
 
 env:
+  IMAGE_NAME_PREFIX: vscode-dev-container
   IMAGE_NAME: debian-base
 
 jobs:
@@ -96,9 +97,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ steps.owner.outputs.name }}/${{ env.IMAGE_NAME }}:latest
-            ghcr.io/${{ steps.owner.outputs.name }}/${{ env.IMAGE_NAME }}:trixie
-            ghcr.io/${{ steps.owner.outputs.name }}/${{ env.IMAGE_NAME }}:13
+            ghcr.io/${{ steps.owner.outputs.name }}/${{ env.IMAGE_NAME_PREFIX }}/${{ env.IMAGE_NAME }}:latest
+            ghcr.io/${{ steps.owner.outputs.name }}/${{ env.IMAGE_NAME_PREFIX }}/${{ env.IMAGE_NAME }}:trixie
+            ghcr.io/${{ steps.owner.outputs.name }}/${{ env.IMAGE_NAME_PREFIX }}/${{ env.IMAGE_NAME }}:13
 
       # Same build, pushed to Docker Hub too. Disabled until DOCKERHUB_USERNAME and
       # DOCKERHUB_TOKEN repository secrets are configured (see the login step above).
@@ -109,6 +110,6 @@ jobs:
       #     platforms: linux/amd64,linux/arm64
       #     push: true
       #     tags: |
-      #       docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-      #       docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:trixie
-      #       docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:13
+      #       docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME_PREFIX }}/${{ env.IMAGE_NAME }}:latest
+      #       docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME_PREFIX }}/${{ env.IMAGE_NAME }}:trixie
+      #       docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME_PREFIX }}/${{ env.IMAGE_NAME }}:13
