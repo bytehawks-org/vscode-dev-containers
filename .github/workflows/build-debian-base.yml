@@ -73,6 +73,14 @@ jobs:
         id: owner
         run: echo "name=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
+      - name: Compute image metadata (created/revision)
+        id: metadata
+        run: |
+          created="$(date -u +%Y%m%dT%H:%M:%S)"
+          revision="$(printf '%s' "$created" | sha256sum | cut -d' ' -f1)"
+          echo "created=$created" >> "$GITHUB_OUTPUT"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -96,6 +104,9 @@ jobs:
           context: base/Debian
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: |
+            IMAGE_REVISION=${{ steps.metadata.outputs.revision }}
+            IMAGE_CREATED=${{ steps.metadata.outputs.created }}
           tags: |
             ghcr.io/${{ steps.owner.outputs.name }}/${{ env.IMAGE_NAME_PREFIX }}/${{ env.IMAGE_NAME }}:latest
             ghcr.io/${{ steps.owner.outputs.name }}/${{ env.IMAGE_NAME_PREFIX }}/${{ env.IMAGE_NAME }}:trixie
@@ -109,6 +120,9 @@ jobs:
       #     context: base/Debian
       #     platforms: linux/amd64,linux/arm64
       #     push: true
+      #     build-args: |
+      #       IMAGE_REVISION=${{ steps.metadata.outputs.revision }}
+      #       IMAGE_CREATED=${{ steps.metadata.outputs.created }}
       #     tags: |
       #       docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME_PREFIX }}/${{ env.IMAGE_NAME }}:latest
       #       docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME_PREFIX }}/${{ env.IMAGE_NAME }}:trixie

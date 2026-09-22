@@ -15,6 +15,26 @@ ARG VS_USER_HOME=/home/$VS_USER_NAME
 ARG NVM_VERSION=0.40.8
 ARG NODE_VERSION=24
 
+# Build-time metadata for OCI labels below. Left as "unknown" for local/manual builds;
+# CI passes real values via --build-arg (see .github/workflows/build-debian-base.yml).
+ARG IMAGE_VERSION=13
+ARG IMAGE_REVISION=unknown
+ARG IMAGE_CREATED=unknown
+
+# OCI image spec annotations: https://github.com/opencontainers/image-spec/blob/main/annotations.md
+LABEL org.opencontainers.image.title="Debian Base" \
+      org.opencontainers.image.description="VS Code Dev Container base image for Debian 13 (Trixie) with Node.js installed via NVM" \
+      org.opencontainers.image.authors="Matteo Kutufa <mk@bytehawks.org>" \
+      org.opencontainers.image.vendor="ByteHawks" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.url="https://github.com/bytehawks-org/vscode-dev-containers" \
+      org.opencontainers.image.source="https://github.com/bytehawks-org/vscode-dev-containers" \
+      org.opencontainers.image.documentation="https://github.com/bytehawks-org/vscode-dev-containers/blob/main/README.md" \
+      org.opencontainers.image.base.name="debian:trixie" \
+      org.opencontainers.image.version="$IMAGE_VERSION" \
+      org.opencontainers.image.revision="$IMAGE_REVISION" \
+      org.opencontainers.image.created="$IMAGE_CREATED"
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Replace /bin/sh with /bin/bash, install common base utilities, and clean up apt caches.
