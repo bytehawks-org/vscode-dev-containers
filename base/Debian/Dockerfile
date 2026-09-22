@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Visual Studio Code "Dev Container" Debian base image
 # with common utilities needed for container development
 #
@@ -37,16 +38,8 @@ LABEL org.opencontainers.image.title="Debian Base" \
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN tee /etc/apt/sources.list.d/docker.sources <<EOF
-Types: deb
-URIs: https://download.docker.com/linux/debian
-Suites: $(. /etc/os-release && echo "$VERSION_CODENAME")
-Components: stable
-Architectures: $(dpkg --print-architecture)
-Signed-By: /etc/apt/keyrings/docker.asc
-EOF
-
-# Replace /bin/sh with /bin/bash, install common base utilities, and clean up apt caches.
+# Replace /bin/sh with /bin/bash, install common base utilities needed to fetch and
+# register the Docker apt repo, and set up locales.
 # - procps: gives VS Code Server (and extensions) `ps`, required for it to detect/manage its own processes
 # - locales: avoids Perl/locale warnings that otherwise surface in every shell/tool downstream
 # - tini: minimal init used as ENTRYPOINT below, so PID 1 reaps zombies and forwards signals correctly
@@ -58,13 +51,25 @@ RUN rm /bin/sh \
     && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
     && locale-gen
 
+# Register the Docker apt repo. The GPG key must exist on disk *before* the sources
+# file that references it via Signed-By, and both must exist before the apt-get
+# update below - otherwise apt fails to read the repo and docker-ce is never found.
 RUN mkdir -p /etc/apt/keyrings \
     && chmod 0755 /etc/apt/keyrings \
     && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
     && chmod a+r /etc/apt/keyrings/docker.asc \
-    && sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    && tee /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/debian
+Suites: $(. /etc/os-release && echo "$VERSION_CODENAME")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
 
-RUN apt-get autoclean \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
+    && apt-get autoclean \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
